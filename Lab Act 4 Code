@@ -1,0 +1,53 @@
+// --- Thermistor Serial Control Example ---
+// Objective: Blink LED if temperature >= 50°C, stop via "stop" command.
+
+const int thermistorPin = A0;
+const int ledPin = 8;
+
+float temperature = 0;
+bool isBlinking = false;  // Tracks if LED should blink
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(ledPin, OUTPUT);
+  Serial.println("System ready. Monitoring temperature...");
+}
+
+void loop() {
+  // --- Read thermistor value ---
+  int analogValue = analogRead(thermistorPin);
+  float resistance = (1023.0 / analogValue - 1) * 10000; // Assuming 10k resistor
+  float temperatureC = 1 / (log(resistance / 10000.0) / 3950 + 1.0 / 298.15) - 273.15;
+
+  // --- Display temperature ---
+  Serial.print("Temperature: ");
+  Serial.print(temperatureC);
+  Serial.println(" °C");
+
+  // --- Check threshold ---
+  if (temperatureC >= 50) {
+    isBlinking = true;  // Start blinking
+  }
+
+  // --- Check serial input ---
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+
+    if (command.equalsIgnoreCase("stop")) {
+      isBlinking = false;
+      digitalWrite(ledPin, LOW);
+      Serial.println("Blinking stopped.");
+    }
+  }
+
+  // --- Blinking logic ---
+  if (isBlinking) {
+    digitalWrite(ledPin, HIGH);
+    delay(100);
+    digitalWrite(ledPin, LOW);
+    delay(100);
+  } else {
+    delay(500); // Regular delay when idle
+  }
+}
